@@ -7,6 +7,19 @@ mod install/update from ficsit.app).
 ghcr.io/rake-pro/satisfactory-server
 ```
 
+## Tags / releases
+
+CI (`.github/workflows/build.yml`) versions the image as semver:
+
+- Every push to `main` mints a patch-bumped `vX.Y.Z` git tag (`#major` /
+  `#minor` in the commit message bump those segments) and pushes
+  `vX.Y.Z` + `latest` to GHCR. No `sha-` tags on main builds.
+- The version tag and the image push happen only after the Trivy scan gate
+  passes (blocking on fixable CRITICALs; a HIGH+CRITICAL report also runs,
+  non-blocking).
+- PR builds are build+scan only (short-sha tag, never pushed).
+- Pin `vX.Y.Z` in deployments; `latest` is a convenience pointer.
+
 ## Run
 
 ```
