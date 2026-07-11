@@ -8,7 +8,7 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 concurrency:
@@ -26,13 +26,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # github-tag-action has no initial_version input; without a seed the
+      # first main build would tag v0.0.1. Seed 1.0.0 when no v* tag exists.
+      - name: Seed first version
+        id: seed
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          if [ -z "$(git ls-remote --tags origin 'refs/tags/v*')" ]; then
+            echo "custom_tag=1.0.0" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Dry run only: computes the next vX.Y.Z so it can be baked into the
+      # image tags at build time. The real git tag is created after the
+      # Trivy gate passes. Empty custom_tag input is treated as unset.
+      - name: Compute next version (dry run)
+        id: version
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: patch
+          custom_tag: ${{ steps.seed.outputs.custom_tag }}
+          dry_run: true
+
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE }}
           tags: |
-            type=sha,format=short
+            type=sha,format=short,enable=${{ github.event_name != 'push' || github.ref != 'refs/heads/main' }}
+            type=raw,value=${{ steps.version.outputs.new_tag || 'noop' }},enable=${{ steps.version.outputs.new_tag != '' }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Set up Docker Buildx
@@ -74,6 +98,16 @@ jobs:
           severity: CRITICAL
           exit-code: '1'
           ignore-unfixed: true
+
+      # Only after the CRITICAL gate passes; custom_tag pins the exact
+      # version already baked into the image tags by the dry run above.
+      - name: Create and push version tag
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: patch
+          custom_tag: ${{ steps.version.outputs.new_version }}
 
       - name: Push (amd64)
         if: ${{ github.event_name != 'pull_request' }}
