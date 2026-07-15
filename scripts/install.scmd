@@ -1,5 +1,6 @@
-// Do not shutdown on a failed command
-@ShutdownOnFailedCommand 0
+// Exit immediately (nonzero) when a command fails so the retry loop in
+// functions.sh sees the failure instead of steamcmd swallowing it.
+@ShutdownOnFailedCommand 1
 
 // No password as this is unattended
 @NoPromptForPassword 1

@@ -25,12 +25,18 @@ fi
 chown -R steam:steam "$INSTALL_DIR" /home/steam/ || true
 
 # Update on start unless told to skip. Always (re)install if the launch script
-# is missing - e.g. a freshly provisioned or wiped PVC.
+# is missing - e.g. a freshly provisioned or wiped PVC. On persistent update
+# failure, still boot whatever is on the PVC (a stale server beats no server)
+# but lead the log with an unmissable error.
 if [ "$SKIPUPDATE" != "true" ]; then
-    install
+    if ! install; then
+        LogError "STEAMCMD UPDATE FAILED after all retries - starting the existing (possibly STALE) build from the PVC"
+    fi
 elif [ ! -x "$INSTALL_DIR/FactoryServer.sh" ]; then
     LogWarn "SKIPUPDATE=true but server files missing; installing anyway"
-    install
+    if ! install; then
+        LogError "STEAMCMD INSTALL FAILED after all retries"
+    fi
 else
     LogWarn "SKIPUPDATE=true, not updating the game"
 fi
