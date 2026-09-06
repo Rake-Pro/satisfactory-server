@@ -1,14 +1,13 @@
-FROM cm2network/steamcmd:root
+FROM ghcr.io/rake-pro/steamcmd-base:latest
 
-RUN apt-get update && apt-get -y upgrade && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    procps \
-    gosu \
-    curl \
-    ca-certificates \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# The base image defaults to USER steam; the build steps below write to
+# /usr/local/bin, /satisfactory and /home/steam/server, so they need root.
+# procps, gosu, curl and ca-certificates all come from the base image, so
+# nothing is apt-installed here. The upgrade pass stays: base layers go stale
+# between weekly rebuilds and old CRITICALs would otherwise fail the Trivy gate.
+USER root
+RUN apt-get update && apt-get upgrade -y \
+ && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # ficsit-cli: headless Satisfactory mod manager (installs/updates mods from
 # ficsit.app, pulls SML automatically). Used by init.sh when MODS is set.
@@ -19,10 +18,7 @@ RUN curl -fsSL -o /usr/local/bin/ficsit \
  && echo "${FICSIT_SHA256}  /usr/local/bin/ficsit" | sha256sum -c - \
  && chmod +x /usr/local/bin/ficsit
 
-LABEL maintainer="greg@rake.pro" \
-      name="rake-pro/satisfactory-server" \
-      github="" \
-      dockerhub=""
+LABEL name="rake-pro/satisfactory-server"
 
 ENV HOME=/home/steam \
     INSTALL_DIR=/satisfactory \
@@ -40,7 +36,7 @@ ENV HOME=/home/steam \
 
 COPY ./scripts /home/steam/server/
 
-RUN find /home/steam/server -type f \( -name "*.sh" -o -name "*.scmd" \) -exec sed -i 's/\r$//' {} \; \
+RUN find /home/steam/server -type f -name "*.sh" -exec sed -i 's/\r$//' {} \; \
  && chmod +x /home/steam/server/*.sh \
  && mkdir -p /satisfactory /satisfactory/saved
 
@@ -51,4 +47,7 @@ WORKDIR /home/steam/server
 HEALTHCHECK --start-period=5m \
             CMD pgrep -f FactoryServer > /dev/null || exit 1
 
+# Still root here on purpose (no USER steam above): init.sh calls
+# remap_steam_user to re-ID the steam user to PUID/PGID, then runs steamcmd,
+# ficsit-cli and the server itself as steam via gosu.
 ENTRYPOINT ["/home/steam/server/init.sh"]

@@ -14,15 +14,20 @@ ln -sfn "$SAVED_DIR" /home/steam/.config/Epic/FactoryGame
 LogAction "Set file permissions"
 
 # Require PUID/PGID so files on the PVC are owned predictably.
-if [ -z "${PUID}" ] || [ -z "${PGID}" ]; then
-    LogError "PUID and PGID not set. Please set these in the environment variables."
-    exit 1
-else
-    usermod -o -u "${PUID}" steam
-    groupmod -o -g "${PGID}" steam
-fi
+require_env PUID
+require_env PGID
 
-chown -R steam:steam "$INSTALL_DIR" /home/steam/ || true
+# Re-ID the steam user to PUID/PGID and chown the PVC-backed directories plus
+# the steam home (scripts and the SteamCMD install are baked in as root).
+remap_steam_user "$INSTALL_DIR" "$SAVED_DIR" /home/steam
+
+# steamcmd runs as steam (via gosu) so everything it writes under $INSTALL_DIR
+# and $HOME/Steam is owned by the user that later runs ficsit-cli and the
+# server. install() lives in functions.sh; env (STEAMAPPID, INSTALL_DIR,
+# STEAMBETA...) passes through gosu unchanged.
+install() {
+    gosu steam bash -c 'source /home/steam/server/functions.sh && install'
+}
 
 # Update on start unless told to skip. Always (re)install if the launch script
 # is missing - e.g. a freshly provisioned or wiped PVC. On persistent update
