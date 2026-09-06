@@ -28,8 +28,9 @@ Built `FROM ghcr.io/rake-pro/steamcmd-base:latest`.
 | `latest` | Latest release |
 | `sha-<short>` | Commit the image was built from |
 
-- `main` is the integration branch; `ci.yml` builds (never pushes) on every push and PR.
-- `sync-prod.yml` opens a promotion PR from `main` to `prod`. Merging it (merge
+- `dev` is the integration branch (default); `ci.yml` builds on every push and PR
+  and publishes `:dev` / `:dev-<sha>` images on pushes to `dev`.
+- `sync-main.yml` opens a promotion PR from `dev` to `main`. Merging it (merge
   commit) mints the next patch tag and `release.yml` builds, pushes and
   Trivy-scans the image (blocking on fixable CRITICALs).
 - Label the promotion PR `release:minor` or `release:major` to change the bump.
