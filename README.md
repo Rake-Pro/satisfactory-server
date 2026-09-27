@@ -97,3 +97,7 @@ applies mods if `MODS` is set, then launches. Saves and config persist under the
   makes one final full-`validate` attempt.
 - If every attempt fails the container still boots the existing (possibly
   stale) build and logs `STEAMCMD UPDATE FAILED` in red.
+
+## License
+
+MIT, see `LICENSE`. The game server itself is downloaded from Steam at runtime and is covered by its own EULA.
