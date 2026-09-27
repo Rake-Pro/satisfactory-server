@@ -34,6 +34,9 @@ Built `FROM ghcr.io/rake-pro/steamcmd-base:latest`.
   commit) mints the next patch tag and `release.yml` builds, pushes and
   Trivy-scans the image (blocking on fixable CRITICALs).
 - Label the promotion PR `release:minor` or `release:major` to change the bump.
+- `trivy-rescan.yml` re-scans the currently released image weekly
+  (CRITICAL+HIGH) so CVEs disclosed after release still surface; it does not
+  rebuild or push anything.
 - Pin `X.Y.Z` in deployments; `latest` is a convenience pointer.
 
 ## Run
@@ -53,18 +56,18 @@ applies mods if `MODS` is set, then launches. Saves and config persist under the
 
 ## Configuration
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `MAXPLAYERS` | `4` | Player cap (applied via launch-time `-ini` override). |
-| `SERVER_PORT` | `7777` | Game port (TCP+UDP). |
-| `RELIABLE_PORT` | `8888` | Reliable/messaging port (TCP). |
-| `MODS` | (empty) | Space-separated ficsit mod refs, each optionally pinned `ref@version` (default latest). SML + dependencies are pulled automatically. |
-| `SKIPUPDATE` | `false` | Skip the SteamCMD update on boot (still installs if missing). |
-| `STEAM_BETA` | (empty) | Steam beta branch name (canonical base-image variable, e.g. `experimental`). Empty or `public` = default branch. |
-| `STEAMBETA` / `STEAMBETAID` | `false` / (empty) | Legacy beta opt-in, still supported. `STEAMBETA=true` plus `STEAMBETAID=<branch>` sets `STEAM_BETA` internally and takes precedence over `STEAM_BETA`. |
-| `STEAM_BETA_PASSWORD` | (empty) | Password for a private beta branch. |
-| `STEAMCMD_RETRIES` | `3` | SteamCMD attempts before the final wipe-and-validate pass. |
-| `PUID` / `PGID` | `1000` | UID/GID that owns files on the volume (required). |
+| Variable | Default | Required | Purpose |
+| --- | --- | --- | --- |
+| `MAXPLAYERS` | `4` | | Player cap (applied via launch-time `-ini` override). |
+| `SERVER_PORT` | `7777` | | Game port (TCP+UDP). |
+| `RELIABLE_PORT` | `8888` | | Reliable/messaging port (TCP). |
+| `MODS` | (empty) | | Space-separated ficsit mod refs, each optionally pinned `ref@version` (default latest). SML + dependencies are pulled automatically. |
+| `SKIPUPDATE` | `false` | | Skip the SteamCMD update on boot (still installs if missing). |
+| `STEAM_BETA` | (empty) | | Steam beta branch name (canonical base-image variable, e.g. `experimental`). Empty or `public` = default branch. |
+| `STEAMBETA` / `STEAMBETAID` | `false` / (empty) | | Legacy beta opt-in, still supported. `STEAMBETA=true` plus `STEAMBETAID=<branch>` sets `STEAM_BETA` internally and takes precedence over `STEAM_BETA`. |
+| `STEAM_BETA_PASSWORD` | (empty) | | Password for a private beta branch. |
+| `STEAMCMD_RETRIES` | `3` | | SteamCMD attempts before the final wipe-and-validate pass. |
+| `PUID` / `PGID` | `1000` | | UID/GID that owns files on the volume. |
 
 ## Ports
 
